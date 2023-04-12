@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "pigeongpt"
+version = "0.1.0"
+description = ""
+authors = ["Kal.L <kalvin807@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
