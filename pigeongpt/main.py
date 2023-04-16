@@ -1,7 +1,12 @@
-import time
 import json
+import time
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from labeler import label_email
 from provider import gmail
-import labeler
 
 
 def display_email_debug(email: gmail.Email):
@@ -30,11 +35,13 @@ def main():
     while True:
         print("check new emails")
         new_emails = service.check_new_emails()
+        dump_as_json(new_emails)
         if new_emails:
             print(f"You have {len(new_emails)} new email(s)!")
             for email in new_emails:
                 display_email_debug(email)
-            labeler(new_emails)
+                pred = label_email(email)
+                print(pred)
         else:
             print("no new emails")
         time.sleep(60)  # Check for new emails every 60 seconds

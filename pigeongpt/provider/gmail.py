@@ -1,8 +1,10 @@
 import base64
 import os
+import re
 import time
 from dataclasses import dataclass
 
+from bs4 import BeautifulSoup
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -18,18 +20,37 @@ SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 class Email:
     subject: str
     sender: str
+    raw_content: str
     content: str
+    mime_type: str
+
+
+def clean_html_content(raw_html):
+    soup = BeautifulSoup(raw_html, "lxml")
+    for script in soup(["script", "style"]):
+        script.decompose()
+    text = soup.get_text()
+    text = re.sub(r"\s+", " ", text).strip()
+    text = text.replace("\xa0", " ")
+
+    return text
 
 
 def parse_payload_for_text(payload):
     if "parts" in payload:
         text_content = ""
+        mime_type = None
         for part in payload["parts"]:
-            if text_content_partials := parse_payload_for_text(part):
+            text_content_partials, mime_type_partials = parse_payload_for_text(part)
+            if text_content_partials and mime_type_partials:
                 text_content += text_content_partials
-        return text_content
+                mime_type = mime_type_partials
+        return text_content, mime_type
     else:
-        return base64.urlsafe_b64decode(payload["body"]["data"]).decode("utf-8")
+        return (
+            base64.urlsafe_b64decode(payload["body"]["data"]).decode("utf-8"),
+            payload.get("mimeType", None),
+        )
 
 
 class GmailProvider:
@@ -52,9 +73,15 @@ class GmailProvider:
             if header["name"].lower() == "from":
                 sender = header["value"]
 
-        content = parse_payload_for_text(payload)
+        raw_content, mime_type = parse_payload_for_text(payload)
 
-        return Email(subject, sender, content)
+        # Clean content based on MIME type
+        if mime_type == "text/html":
+            content = clean_html_content(raw_content)
+        else:
+            content = raw_content.strip()
+
+        return Email(subject, sender, raw_content, content, mime_type)
 
     def get_gmail_service(self):
         if self.service:
