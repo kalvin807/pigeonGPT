@@ -20,7 +20,7 @@ LABELS = ["Alert", "Bill", "Booking", "Newsletter", "Promotion"]
 MAX_EMAIL_TOKEN_USAGE = 4000
 CHAT_GPT_MODEL = "gpt-3.5-turbo"
 
-llm = ChatOpenAI(temperature=0, model_name=CHAT_GPT_MODEL)
+llm = ChatOpenAI(temperature=0, model_name=CHAT_GPT_MODEL)  # type: ignore
 text_splitter = RecursiveCharacterTextSplitter().from_tiktoken_encoder(
     chunk_size=2000, chunk_overlap=50
 )
@@ -73,7 +73,7 @@ def make_label_prompt(email: Email) -> str:
     Sender: {email.sender}
     Content: {email.content}
     Determine the nature of this email.
-    The possible labels are {",".join(f"'{l}'" for l in LABELS)} or 'unknown'.
+    The possible labels are {",".join(f"'{label}'" for label in LABELS)} or 'unknown'.
     Only reply the label and wrap the label in '###'.
     """
 

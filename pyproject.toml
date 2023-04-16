@@ -23,6 +23,7 @@ structlog = "^23.1.0"
 black = "^23.3.0"
 ruff = "^0.0.261"
 pytest = "^7.3.0"
+mypy = "^1.2.0"
 
 [build-system]
 requires = ["poetry-core"]
