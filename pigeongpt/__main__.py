@@ -5,8 +5,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import structlog  # noqa: E402
-from labeler import label_email  # noqa: E402
-from provider import gmail  # noqa: E402
+
+from pigeongpt.labeler import label_email  # noqa: E402
+from pigeongpt.provider import gmail  # noqa: E402
 
 COOLDOWN_SECOND = 60
 

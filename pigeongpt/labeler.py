@@ -9,8 +9,9 @@ from langchain.chains.summarize import load_summarize_chain
 from langchain.chat_models import ChatOpenAI
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from provider.gmail import Email
 from tenacity import retry, stop_after_attempt, wait_random_exponential
+
+from pigeongpt.provider.gmail import Email
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 openai.api_key = os.getenv("OPENAI_API_KEY")
