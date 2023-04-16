@@ -5,14 +5,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from labeler import label_email
-from provider import gmail
+import structlog  # noqa: E402
+from labeler import label_email  # noqa: E402
+from provider import gmail  # noqa: E402
 
 
 def display_email_debug(email: gmail.Email):
-    print(
-        f"subject: {email.subject} | sender: {email.sender} | content : {email.content}"
-    )
+    log: structlog.stdlib.BoundLogger = structlog.get_logger()
+    log.debug("Recived email", email=email)
 
 
 def dump_as_json(emails):
@@ -29,21 +29,22 @@ def load_from_json():
 
 
 def main():
-    print("hi")
+    structlog.configure(
+        processors=[structlog.processors.JSONRenderer()],
+    )
+    log: structlog.stdlib.BoundLogger = structlog.get_logger()
     service = gmail.GmailProvider()
 
     while True:
-        print("check new emails")
+        log.info("no new emails")
         new_emails = service.check_new_emails()
         dump_as_json(new_emails)
         if new_emails:
-            print(f"You have {len(new_emails)} new email(s)!")
             for email in new_emails:
                 display_email_debug(email)
-                pred = label_email(email)
-                print(pred)
+                label_email(email)
         else:
-            print("no new emails")
+            log.info("no new emails")
         time.sleep(60)  # Check for new emails every 60 seconds
 
 

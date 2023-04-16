@@ -4,6 +4,7 @@ import re
 import time
 from dataclasses import dataclass
 
+import structlog
 from bs4 import BeautifulSoup
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -14,6 +15,8 @@ CLIENT_SECRET_FILE = "client_secret.json"
 API_NAME = "gmail"
 API_VERSION = "v1"
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
+
+log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
 @dataclass
@@ -34,6 +37,13 @@ def clean_html_content(raw_html):
     text = text.replace("\xa0", " ")
 
     return text
+
+
+def remove_urls(text: str):
+    url_pattern = re.compile(
+        r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
+    )
+    return url_pattern.sub("", text)
 
 
 def parse_payload_for_text(payload):
@@ -80,6 +90,7 @@ class GmailProvider:
             content = clean_html_content(raw_content)
         else:
             content = raw_content.strip()
+        content = remove_urls(content)
 
         return Email(subject, sender, raw_content, content, mime_type)
 
@@ -113,7 +124,7 @@ class GmailProvider:
         query = f"after:{last_check_epoch}"
         service = self.get_gmail_service()
         # userId = 'me', only check the service owner's email
-        print(f"query gmail with: q={query}")
+        log.debug(f"query gmail with: q={query}")
         results = service.users().messages().list(userId="me", q=query).execute()
         raw_messages = results.get("messages", [])
         parsed_messages = []

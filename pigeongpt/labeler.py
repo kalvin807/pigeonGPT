@@ -2,6 +2,7 @@ import os
 import re
 
 import openai
+import structlog
 import tiktoken
 from langchain import PromptTemplate
 from langchain.chains.summarize import load_summarize_chain
@@ -11,10 +12,11 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from provider.gmail import Email
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
+log: structlog.stdlib.BoundLogger = structlog.get_logger()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 enc = tiktoken.get_encoding("cl100k_base")
 
-LABELS = ["newsletter", "bills", "ads"]
+LABELS = ["Alert", "Bill", "Booking", "Newsletter", "Promotion"]
 MAX_EMAIL_TOKEN_USAGE = 4000
 CHAT_GPT_MODEL = "gpt-3.5-turbo"
 
@@ -23,7 +25,7 @@ text_splitter = RecursiveCharacterTextSplitter().from_tiktoken_encoder(
     chunk_size=2000, chunk_overlap=50
 )
 summary_prompt = PromptTemplate(
-    template="Write a short summary based on the data below, start with the type of article: \n\n{text}.",
+    template="Please read the following text and provide a concise summary that captures the main ideas, while retaining important context, warnings, and other key details that would be relevant for classifying the email: \n\n{text}.",
     input_variables=["text"],
 )
 combine_summary_prompt = PromptTemplate(
@@ -71,7 +73,7 @@ def make_label_prompt(email: Email) -> str:
     Sender: {email.sender}
     Content: {email.content}
     Determine the nature of this email.
-    The possible labels are 'newsletter', 'bills', or 'ads', 'unknown'.
+    The possible labels are {",".join(f"'{l}'" for l in LABELS)} or 'unknown'.
     Only reply the label and wrap the label in '###'.
     """
 
@@ -87,6 +89,7 @@ def label_email(email: Email):
     processed_email = preprocess_email(email)
     prompt = make_label_prompt(processed_email)
     response = get_gpt_response(prompt)
+    log.debug("label email", prompt=prompt, response=response)
     response_message = response.choices[0].message.content.strip()
     match = re.search(r"###(.*)###", response_message)
     if match:
