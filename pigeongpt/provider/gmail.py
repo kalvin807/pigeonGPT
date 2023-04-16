@@ -23,7 +23,7 @@ SCOPES = [
     "https://www.googleapis.com/auth/gmail.modify",
 ]
 
-PORT = int(os.environ["PORT"]) if os.environ["PORT"] else 8080
+PORT = int(os.environ["PORT"]) if os.environ.get("PORT") else 8080
 log: structlog.stdlib.BoundLogger = structlog.get_logger()
 
 
@@ -44,6 +44,16 @@ class GmailProvider:
             with open("token.json", "rb") as token:
                 creds = Credentials.from_authorized_user_file("token.json", SCOPES)
 
+        creds_json = os.environ.get("GMAIL_CREDENTIALS_JSON")
+        if creds_json:
+            creds = Credentials.from_authorized_user_info(
+                info=eval(creds_json), scopes=SCOPES
+            )
+        elif os.environ.get("RAILWAY_ENVIRONMENT") == "production":
+            raise ValueError(
+                "Environment variable GMAIL_CREDENTIALS_JSON not found on production!"
+            )
+
         if (
             not creds
             or not creds.has_scopes(SCOPES)
@@ -51,7 +61,7 @@ class GmailProvider:
         ):
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
-            else:
+            elif os.environ.get("RAILWAY_ENVIRONMENT") != "production":
                 flow = InstalledAppFlow.from_client_secrets_file(
                     CLIENT_SECRET_FILE, SCOPES
                 )
