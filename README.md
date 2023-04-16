@@ -2,6 +2,8 @@
 
 PigeonGPT Email Labeler is a Python project that automatically labels your Gmail emails using chatGPT. The script checks for new emails every minute, labels them based on their content, and applies appropriate tags. Enjoy a well-organized inbox without lifting a finger!
 
+> ⚠️ All email will **directly send** to OpenAI's server as a prompt. Consider carefully the privacy aspect. Please do not use this on sensitive or work email accounts!
+
 ## 🚀 Features
 
 - Automatically label incoming emails in Gmail
