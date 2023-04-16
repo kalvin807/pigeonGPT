@@ -39,7 +39,6 @@ def main():
     while True:
         log.info("no new emails")
         new_emails = service.check_new_emails_since()
-        dump_as_json(new_emails)
         if new_emails:
             for email in new_emails:
                 display_email_debug(email)
