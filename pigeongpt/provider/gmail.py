@@ -108,12 +108,12 @@ class GmailProvider:
         return Email(message_id, subject, sender, raw_content, content, mime_type)
 
     def check_new_emails_since(
-        self, last_check_epoch=int(time.time_ns() // 1e9 - (24 * 60 * 60))
+        self, last_check_epoch=int(time.time_ns() // 1e9 - 60)
     ) -> list[Email]:
         query = f"after:{last_check_epoch}"
         service = self._get_gmail_api_service()
         # userId = 'me', only check the service owner's email
-        log.debug(f"query gmail with: q={query}")
+        log.info(f"check email at t={last_check_epoch}")
         results = service.users().messages().list(userId="me", q=query).execute()
         raw_messages = results.get("messages", [])
         parsed_messages = []

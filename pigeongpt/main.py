@@ -1,4 +1,3 @@
-import json
 import time
 
 from dotenv import load_dotenv
@@ -8,25 +7,8 @@ load_dotenv()
 import structlog  # noqa: E402
 from labeler import label_email  # noqa: E402
 from provider import gmail  # noqa: E402
-from provider.utils import Email  # noqa: E402
 
-
-def display_email_debug(email: Email):
-    log: structlog.stdlib.BoundLogger = structlog.get_logger()
-    log.debug("Recived email", email=email)
-
-
-def dump_as_json(emails: list[Email]):
-    email_dicts = [email.__dict__ for email in emails]
-    with open("emails.json", "w") as f:
-        json.dump(email_dicts, f)
-
-
-def load_from_json():
-    with open("emails.json", "r") as f:
-        email_dicts = json.load(f)
-        # Create a list of email instances from the list of dictionaries
-        return [gmail.Email(**email_dict) for email_dict in email_dicts]
+COOLDOWN_SECOND = 60
 
 
 def main():
@@ -36,17 +18,23 @@ def main():
     log: structlog.stdlib.BoundLogger = structlog.get_logger()
     service = gmail.GmailProvider()
 
+    # At start-up, check emails 1 mins ago
+    last_check = int(time.time_ns() // 1e9 - 60)
+
     while True:
-        log.info("no new emails")
-        new_emails = service.check_new_emails_since()
+        new_emails = service.check_new_emails_since(last_check)
         if new_emails:
             for email in new_emails:
-                display_email_debug(email)
-                pred = label_email(email)
-                service.tag_email_by_id(email, pred)
+                try:
+                    pred = label_email(email)
+                    service.tag_email_by_id(email, pred)
+                except Exception as e:
+                    log.error("error during lableing email", error=e)
+
         else:
             log.info("no new emails")
-        time.sleep(60)  # Check for new emails every 60 seconds
+        last_check = int(time.time_ns() // 1e9)
+        time.sleep(COOLDOWN_SECOND)  # Check for new emails every 60 seconds
 
 
 if __name__ == "__main__":
